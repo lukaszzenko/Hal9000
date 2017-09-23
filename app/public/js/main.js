@@ -14,6 +14,77 @@
         audioRecorder = null;
     var analyserContext = null;
 
+
+
+    function initAudioAndVideo() {
+
+        if (!navigator.getUserMedia)
+            navigator.getUserMedia = navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
+        if (!navigator.cancelAnimationFrame)
+            navigator.cancelAnimationFrame = navigator.webkitCancelAnimationFrame || navigator.mozCancelAnimationFrame;
+        if (!navigator.requestAnimationFrame)
+            navigator.requestAnimationFrame = navigator.webkitRequestAnimationFrame || navigator.mozRequestAnimationFrame;
+
+        navigator.getUserMedia({
+            "audio": {
+                "mandatory": {
+                    "googEchoCancellation": "false",
+                    "googAutoGainControl": "false",
+                    "googNoiseSuppression": "false",
+                    "googHighpassFilter": "false"
+                },
+                "optional": []
+            },
+            "video": true
+        }, function (stream) {
+            inputPoint = audioContext.createGain();
+
+            realAudioInput = audioContext.createMediaStreamSource(stream);
+            audioInput = realAudioInput;
+            audioInput.connect(inputPoint);
+
+            analyserNode = audioContext.createAnalyser();
+            analyserNode.fftSize = 2048;
+            inputPoint.connect( analyserNode );
+
+            audioRecorder = new Recorder(inputPoint);
+
+            zeroGain = audioContext.createGain();
+            zeroGain.gain.value = 0.0;
+            inputPoint.connect( zeroGain );
+            zeroGain.connect(audioContext.destination);
+
+            var video = document.getElementById('video');
+            video.src = window.URL.createObjectURL(stream);
+            video.play();
+        }, function (e) {
+            alert('Error getting audio and video');
+            console.log(e);
+        });
+    };
+
+    function main() {
+        initAudioAndVideo();
+
+        // Trigger photo take
+        document.getElementById("snap").addEventListener("click", function() {
+            var canvas = document.getElementById('canvas');
+            var context = canvas.getContext('2d');
+            var video = document.getElementById('video');
+
+            context.drawImage(video, 0, 0, 390, 280);
+            var imageBase64 = canvas.toDataURL('image/jpeg', 1.0);
+
+            $.post('/emotion', {
+                imageBase64: imageBase64
+            }, function(result) {
+                console.log(result);
+            });
+        });
+
+    };
+
+
     function submit(blob){
         console.log(blob);
 
@@ -118,86 +189,6 @@
         $('#spinPhrase').css('visibility', 'visible');
         audioRecorder.stop();
         audioRecorder.getBuffers(gotBuffers);
-
-        // EVENTUALY, WE WILL DO THIS AT THE END:
-        // updateGrid();
-    };
-
-    function callbackReceivedAudioStream(stream) {
-
-        inputPoint = audioContext.createGain();
-
-        realAudioInput = audioContext.createMediaStreamSource(stream);
-        audioInput = realAudioInput;
-        audioInput.connect(inputPoint);
-
-        analyserNode = audioContext.createAnalyser();
-        analyserNode.fftSize = 2048;
-        inputPoint.connect( analyserNode );
-
-        audioRecorder = new Recorder( inputPoint );
-
-        zeroGain = audioContext.createGain();
-        zeroGain.gain.value = 0.0;
-        inputPoint.connect( zeroGain );
-        zeroGain.connect( audioContext.destination );
-    };
-
-    function initAudio() {
-
-        if (!navigator.getUserMedia)
-            navigator.getUserMedia = navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
-        if (!navigator.cancelAnimationFrame)
-            navigator.cancelAnimationFrame = navigator.webkitCancelAnimationFrame || navigator.mozCancelAnimationFrame;
-        if (!navigator.requestAnimationFrame)
-            navigator.requestAnimationFrame = navigator.webkitRequestAnimationFrame || navigator.mozRequestAnimationFrame;
-
-        navigator.getUserMedia(
-            {
-                "audio": {
-                    "mandatory": {
-                        "googEchoCancellation": "false",
-                        "googAutoGainControl": "false",
-                        "googNoiseSuppression": "false",
-                        "googHighpassFilter": "false"
-                    },
-                    "optional": []
-                },
-            }, callbackReceivedAudioStream, function (e) {
-                alert('Error getting audio');
-                console.log(e);
-            });
-    };
-
-    function main() {
-        initAudio();
-        // Grab elements, create settings, etc.
-        var video = document.getElementById('video');
-
-        // Get access to the camera!
-        if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-            // Not adding `{ audio: true }` since we only want video now
-            navigator.mediaDevices.getUserMedia({ video: true }).then(function(stream) {
-                video.src = window.URL.createObjectURL(stream);
-                video.play();
-            });
-        }
-        // Trigger photo take
-        document.getElementById("snap").addEventListener("click", function() {
-            var canvas = document.getElementById('canvas');
-            var context = canvas.getContext('2d');
-            var video = document.getElementById('video');
-
-            context.drawImage(video, 0, 0, 390, 280);
-            var imageBase64 = canvas.toDataURL('image/jpeg', 1.0);
-
-            $.post('/emotion', {
-                imageBase64: imageBase64
-            }, function(result) {
-                console.log(result);
-            });
-        });
-
     };
 
     window.addEventListener('load', main);

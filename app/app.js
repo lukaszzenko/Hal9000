@@ -14,7 +14,7 @@ var fs = require('fs'),
     tts = require('./TTSService.js'),
     child_process = require('child_process'),
     secrets = require('./config/secrets'),
-    secrets = require('./config/config');
+    config = require('./config/config');
 
 var savedFile = null;
 
