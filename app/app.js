@@ -15,7 +15,6 @@ var fs = require('fs'),
     child_process = require('child_process'),
     secrets = require('./secrets');
 
-var robot_process = null;
 var savedFile = null;
 
 function getAccessToken(clientSecret, callback) {
@@ -171,23 +170,6 @@ app.get('/', function(req, res) {
   res.sendFile('index.html');
 });
 
-
-function initRobotSubprocess() {
-    var child = child_process.spawn('python', ['../robot.py']);
-    var logStream = fs.createWriteStream('./robot_subprocess.log', {flags: 'a'});
-    child.stdout.pipe(logStream);
-    child.stderr.pipe(logStream);
-
-    child.on('error', function (err) {
-        console.log('child process error' + err);
-    });
-    child.on('exit', function (code, signal) {
-        console.log('child process exited with code ' + code + ' and signal ' + signal);
-    });
-    return child;
-}
-
-
 function getWeatherForecast() {
     var lat = 37.56
     var lon = 56.67
@@ -265,19 +247,6 @@ function doAction(luisRes) {
     }
 }
 
-function sendActionToRobot(action) {
-    console.log('Sending action to robot: ' + action);
-
-    var port = 5000;
-    request.get({
-        url: 'http://localhost:' + port + '/cmds/' + action,
-    }, function(err, resp, body) {
-        if(err) {
-            console.log('Encountered error when sending action to robot')
-        }
-    });
-
-}
 
 function textToSpeech(query) {
     try {
@@ -313,9 +282,6 @@ app.post('/recognize', function(req, res) {
 
 function luisAction(action) {
     console.log(action);
-    if (action.movement) {
-        sendActionToRobot(action.movement);
-    }
     textToSpeech(action.response);
 }
 
