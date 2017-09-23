@@ -9,13 +9,14 @@ THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 var request = require('request'),
     xmlbuilder = require('xmlbuilder'),
     wav = require('wav'),
-    Speaker = require('speaker');
+    Speaker = require('speaker'),
+    secrets = require('./config/secrets'),
+    config = require('./config/config');;
 
 exports.Synthesize = function Synthesize(arg){
     // Note: The way to get api key:
     // Free: https://www.microsoft.com/cognitive-services/en-us/subscriptions?productId=/products/Bing.Speech.Preview
     // Paid: https://portal.azure.com/#create/Microsoft.CognitiveServices/apitype/Bing.Speech/pricingtier/S0
-    var apiKey = "fd069834defd4bdca5f366265b1577ea";
     var ssml_doc = xmlbuilder.create('speak')
         .att('version', '1.0')
         .att('xml:lang', 'en-GB')
@@ -28,9 +29,9 @@ exports.Synthesize = function Synthesize(arg){
     var post_speak_data = ssml_doc.toString();
 
     request.post({
-    	url: 'https://api.cognitive.microsoft.com/sts/v1.0/issueToken',
+    	url: config.STS_ISSUE_TOKEN_ENDPOINT,
         headers: {
-            'Ocp-Apim-Subscription-Key' : apiKey
+            'Ocp-Apim-Subscription-Key': secrets.MS_CS_STS_KEY
         }
     }, function (err, resp, access_token) {
         if (err || resp.statusCode != 200) {
