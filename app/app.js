@@ -12,16 +12,13 @@ var fs = require('fs'),
     connect = require('connect'),
     bodyParser = require('body-parser'),
     tts = require('./TTSService.js'),
-    child_process = require('child_process');
+    child_process = require('child_process'),
+    secrets = require('./secrets');
 
 var robot_process = null;
-
-var clientId = 'test-app';   
-var clientSecret = 'fd069834defd4bdca5f366265b1577ea';
-//'ceb21dbbce474431ad3fc95b12a6cc90'; // API key from Bing Speech service
 var savedFile = null;
 
-function getAccessToken(clientId, clientSecret, callback) {
+function getAccessToken(clientSecret, callback) {
   //curl -v -X POST "https://api.cognitive.microsoft.com/sts/v1.0/issueToken" -H "Content-type: application/x-www-form-urlencoded" -H "Content-Length: 0" -H "Ocp-Apim-Subscription-Key: fd069834defd4bdca5f366265b1577ea
   request.post({
     url: 'https://api.cognitive.microsoft.com/sts/v1.0/issueToken',
@@ -53,7 +50,7 @@ function speechToText(filename, accessToken, callback) {
         'language': 'en-US',
         'locale': 'en-US',
         'format': 'json',
-        'requestid': '1d4b6030-9099-11e0-91e4-0800200c9a66'
+        'requestid': secrets.csSubscriptionKey
       },
       body: waveData,
       headers: {
@@ -76,7 +73,7 @@ function LUIS(query, callback) {
     request.get({
       url: 'https://westus.api.cognitive.microsoft.com/luis/v2.0/apps/4c093489-e725-48c6-b675-aa6281bc4cf9',
       qs: {
-        'subscription-key': 'a58b814c31ce4c74b7d33e37be1aeea6',
+        'subscription-key': secrets.luisSecretKey,
         'q': query,
         'staging': true
       }
@@ -94,8 +91,6 @@ function LUIS(query, callback) {
 // Microsoft Emotion API
 ////////////////////////
 
-const EMOTION_KEY_1 = "2dfea5dee037454ca1a887514b562150";
-const EMOTION_KEY_2 = "9229d4bcb63141cdae997744b4f9bfea";
 const EMOTION_ENDPOINT = "https://westus.api.cognitive.microsoft.com/emotion/v1.0";
 
 function decodeBase64Image(dataString) {
@@ -133,14 +128,14 @@ app.use(bodyParser.json());
 app.post('/emotion', function(req, res) {
     var image64 = req.body.imageBase64;
     var image = decodeBase64Image(image64);
-    imageToEmotion(image, EMOTION_KEY_1, function(err, emores) {
+    imageToEmotion(image, secrets.EMOTION_KEY_1, function(err, emores) {
         if (err) {
             res.status(400).send(err);
             return console.log(err);
         }
         var data = JSON.parse(emores.body);
         var scores = data[0].scores;
-        var bestScoredEmotion = Object.keys(scores).reduce(function(a, b){ return scores[a] > scores[b] ? a : b });
+        var bestScoredEmotion = Object.keys(scores).reduce(function(a, b) { return scores[a] > scores[b] ? a : b });
         console.log('Best scored emotion: ' + bestScoredEmotion);
         reactToEmotion(bestScoredEmotion);
         res.status(200).send(emores.body);
@@ -303,7 +298,7 @@ app.post('/recognize', function(req, res) {
 
   busboy.on('finish', function() {
       var result = '';
-      getAccessToken(clientId, clientSecret, function(err, accessToken) {
+      getAccessToken(secrets.stsKey1, function(err, accessToken) {
           if(err) return console.log(err);
           console.log('Got access token: ' + accessToken);
           speechToText(savedFile, accessToken, function(err, speechres) {
@@ -313,7 +308,6 @@ app.post('/recognize', function(req, res) {
       })
 
   });
-
   req.pipe(busboy);
 });
 

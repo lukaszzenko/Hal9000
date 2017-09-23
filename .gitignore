@@ -9,6 +9,7 @@ __pycache__/
 *.so
 
 # Node modules
+app/secrets.js
 node_modules/
 
 # Distribution / packaging
