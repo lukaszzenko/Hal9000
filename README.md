@@ -71,13 +71,13 @@ node app/app.js
 
 ## 3. Ideas / TODOs
 
-[ ] Search for information in Bing
-[ ] Look up the weather for other days than today
-[ ] Add items to shopping list / to-do list
-[ ] Live face detection
-[ ] Reminders
-[ ] Manage calendar
-[ ] Manage home theather and TV
-[ ] Home automation (coffe maker, shades)
-[ ] Communication (call number, send message)
-[ ] Call a taxi
+- [ ] Search for information in Bing
+- [ ] Look up the weather for other days than today
+- [ ] Add items to shopping list / to-do list
+- [ ] Live face detection
+- [ ] Reminders
+- [ ] Manage calendar
+- [ ] Manage home theather and TV
+- [ ] Home automation (coffe maker, shades)
+- [ ] Communication (call number, send message)
+- [ ] Call a taxi
