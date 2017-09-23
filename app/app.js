@@ -13,16 +13,17 @@ var fs = require('fs'),
     bodyParser = require('body-parser'),
     tts = require('./TTSService.js'),
     child_process = require('child_process'),
-    secrets = require('./secrets');
+    secrets = require('./config/secrets'),
+    secrets = require('./config/config');
 
 var savedFile = null;
 
-function getAccessToken(clientSecret, callback) {
+function getAccessToken(callback) {
   //curl -v -X POST "https://api.cognitive.microsoft.com/sts/v1.0/issueToken" -H "Content-type: application/x-www-form-urlencoded" -H "Content-Length: 0" -H "Ocp-Apim-Subscription-Key: fd069834defd4bdca5f366265b1577ea
   request.post({
-    url: 'https://api.cognitive.microsoft.com/sts/v1.0/issueToken',
+    url: config.STS_ISSUE_TOKEN_ENDPOINT ,
     headers: {
-      'Ocp-Apim-Subscription-Key': clientSecret
+      'Ocp-Apim-Subscription-Key': secrets.MS_CS_STS_KEY
     }
   }, function(err, resp, body) {
     if(err) return callback(err);
@@ -44,12 +45,12 @@ function speechToText(filename, accessToken, callback) {
   fs.readFile(filename, function(err, waveData) {
     if(err) return callback(err);
     request.post({
-      url: 'https://speech.platform.bing.com/speech/recognition/interactive/cognitiveservices/v1',
+      url: config.SPEECH_RECOGNITION_ENDPOINT,
       qs: {
         'language': 'en-US',
         'locale': 'en-US',
         'format': 'json',
-        'requestid': secrets.csSubscriptionKey
+        'requestid': secrets.MS_CS_SUBSCRIPTION_KEY
       },
       body: waveData,
       headers: {
@@ -70,9 +71,9 @@ function speechToText(filename, accessToken, callback) {
 
 function LUIS(query, callback) {
     request.get({
-      url: 'https://westus.api.cognitive.microsoft.com/luis/v2.0/apps/4c093489-e725-48c6-b675-aa6281bc4cf9',
+      url: config.LUIS_ENDPOINT + config.LUIS_APP,
       qs: {
-        'subscription-key': secrets.luisSecretKey,
+        'subscription-key': secrets.LUIS_SECRET_KEY,
         'q': query,
         'staging': true
       }
@@ -90,8 +91,6 @@ function LUIS(query, callback) {
 // Microsoft Emotion API
 ////////////////////////
 
-const EMOTION_ENDPOINT = "https://westus.api.cognitive.microsoft.com/emotion/v1.0";
-
 function decodeBase64Image(dataString) {
   var matches = dataString.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/),
     response = {};
@@ -106,11 +105,11 @@ function decodeBase64Image(dataString) {
   return response;
 }
 
-function imageToEmotion(imageData, accessToken, callback) {
-    var r = request.post(EMOTION_ENDPOINT + '/recognize', {
+function imageToEmotion(imageData, callback) {
+    var r = request.post(config.EMOTION_ENDPOINT + '/recognize', {
         headers: {
             'Content-Type': 'application/octet-stream',
-            'Ocp-Apim-Subscription-Key': accessToken
+            'Ocp-Apim-Subscription-Key': secrets.MS_EMOTION_KEY_1
         },
         body: imageData.data
     }, function(err, resp, body) {
@@ -127,7 +126,7 @@ app.use(bodyParser.json());
 app.post('/emotion', function(req, res) {
     var image64 = req.body.imageBase64;
     var image = decodeBase64Image(image64);
-    imageToEmotion(image, secrets.EMOTION_KEY_1, function(err, emores) {
+    imageToEmotion(image, function(err, emores) {
         if (err) {
             res.status(400).send(err);
             return console.log(err);
@@ -175,11 +174,11 @@ function getWeatherForecast() {
     var lon = 56.67
 
     request.get({
-        url: 'https://api.us.apiconnect.ibmcloud.com' + '/infomichaelwellnerde-dev/hackzurich/v1/geocode/'+lat+'/'+lon+'/forecast/nowcast.json?units=e',
+        url: config.IBM_WEATHER_ENDPOINT + lat + '/' + lon + '/forecast/nowcast.json?units=e',
         headers: {
             'accept': 'application/json',
-            'X-IBM-Client-Id': '7216b8fc-4815-43e4-bc20-1614e35aec09',
-            'X-IBM-Client-Secret': 'iX0dP6tS0jA0tR6uR5yH6eO7pV6bS0fL4gW8mW6gI5kG8rU2nU',
+            'X-IBM-Client-Id': secrets.IBM_WEATHER_CLIENT_ID,
+            'X-IBM-Client-Secret': secrets.IBM_WEATHER_SECRET_KEY,
         },
     }, function(err, resp, body) {
        if (err) return callback(err);
@@ -267,7 +266,7 @@ app.post('/recognize', function(req, res) {
 
   busboy.on('finish', function() {
       var result = '';
-      getAccessToken(secrets.stsKey1, function(err, accessToken) {
+      getAccessToken(function(err, accessToken) {
           if(err) return console.log(err);
           console.log('Got access token: ' + accessToken);
           speechToText(savedFile, accessToken, function(err, speechres) {
